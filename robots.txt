@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /tulis-berita.html
+
+Sitemap: https://ddpe.my.id/sitemap.xml
