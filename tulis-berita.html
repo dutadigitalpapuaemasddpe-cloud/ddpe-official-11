@@ -446,6 +446,7 @@
 
   <script src="js/news-config.js"></script>
   <script src="js/news-store.js"></script>
+  <script src="js/media-store.js"></script>
   <script src="js/theme.js" defer></script>
   <script src="js/main.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -461,6 +462,7 @@
 
       if (window.DDPE_NEWS_CONFIG && DDPE_NEWS_CONFIG.supabaseUrl && DDPE_NEWS_CONFIG.supabaseAnonKey && window.supabase) {
         supabaseClient = window.supabase.createClient(DDPE_NEWS_CONFIG.supabaseUrl, DDPE_NEWS_CONFIG.supabaseAnonKey);
+        window.DDPE_SUPABASE_CLIENT = supabaseClient;
       }
 
       function showEditor() {
@@ -781,8 +783,10 @@
         photoMsg.textContent = "Mengunggah foto...";
         try {
           payload.fileUrls = await uploadPhotoFiles();
+          var album = Object.assign(payload, { status: status, savedAt: new Date().toISOString() });
+          if (window.DDPEMedia) album = await DDPEMedia.createAlbum(album);
           var items = JSON.parse(localStorage.getItem(photoStorageKey) || "[]");
-          items.unshift(Object.assign(payload, { status: status, savedAt: new Date().toISOString() }));
+          items.unshift(album);
           localStorage.setItem(photoStorageKey, JSON.stringify(items));
           photoMsg.className = "editor-msg ok";
           photoMsg.textContent = status === "published" ? "Album foto berhasil diterbitkan." : "Draf album foto berhasil disimpan.";

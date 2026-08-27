@@ -350,15 +350,23 @@
   </footer>
   <script src="js/news-config.js"></script>
   <script src="js/news-store.js"></script>
+  <script src="js/media-store.js"></script>
   <script src="js/theme.js" defer></script>
   <script src="js/main.js"></script>
   <script>
-    (function () {
+    (async function () {
       var grid = document.getElementById("publishedPhotoGrid");
       var emptyMessage = document.getElementById("photoEmptyMessage");
       if (!grid) return;
       var albums = [];
-      try { albums = JSON.parse(localStorage.getItem("ddpe_photo_albums") || "[]"); } catch (ignore) {}
+      try {
+        albums = window.DDPEMedia
+          ? await DDPEMedia.listPublished()
+          : JSON.parse(localStorage.getItem("ddpe_photo_albums") || "[]");
+      } catch (error) {
+        console.warn("DDPE: galeri media remote tidak dapat dimuat.", error);
+        try { albums = JSON.parse(localStorage.getItem("ddpe_photo_albums") || "[]"); } catch (ignore) {}
+      }
       var publishedPhotos = albums.filter(function (album) {
         return album.status === "published" && Array.isArray(album.fileUrls) && album.fileUrls.length;
       });

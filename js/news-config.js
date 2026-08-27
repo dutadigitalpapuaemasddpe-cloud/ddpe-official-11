@@ -9,9 +9,10 @@ window.DDPE_NEWS_CONFIG = {
   // Endpoint Formspree (opsional) — notifikasi email saat artikel baru
   formspreeEndpoint: "",
 
-  // Supabase (opsional) — sinkron multi-perangkat
-  supabaseUrl: "https://khjbkktetfzckxarkggl.supabase.co/rest/v1/",
+  // Supabase — sinkron berita dan media antarperangkat
+  supabaseUrl: "https://khjbkktetfzckxarkggl.supabase.co",
   supabaseAnonKey: "sb_publishable_qQyPsHEUOjjckLMQ1Rp66w_tB7OnL0R",
   table: "articles",
+  mediaTable: "media_albums",
   storageBucket: "ddpe-media"
 };

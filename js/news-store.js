@@ -112,9 +112,14 @@
     return Boolean(cfg.supabaseUrl && cfg.supabaseAnonKey);
   }
 
+  function apiBase() {
+    return cfg.supabaseUrl.replace(/\/$/, "").replace(/\/rest\/v1$/, "");
+  }
+
   async function remoteToken() {
-    if (!global.supabase || !global.supabase.auth) return "";
-    var result = await global.supabase.auth.getSession();
+    var client = global.DDPE_SUPABASE_CLIENT;
+    if (!client || !client.auth) return "";
+    var result = await client.auth.getSession();
     return result.data.session ? result.data.session.access_token : "";
   }
 
@@ -122,7 +127,7 @@
     if (!remoteEnabled()) return null;
     var token = await remoteToken();
     if (!token) throw new Error("Sesi Supabase tidak tersedia. Silakan masuk kembali.");
-    var url = cfg.supabaseUrl.replace(/\/$/, "") + "/rest/v1/" + encodeURIComponent(cfg.table || "articles");
+    var url = apiBase() + "/rest/v1/" + encodeURIComponent(cfg.table || "articles");
     if (id) url += "?id=eq." + encodeURIComponent(id);
     var response = await fetch(url, {
       method: method,
@@ -169,7 +174,7 @@
 
   async function remotePublished() {
     if (!remoteEnabled()) return [];
-    var response = await fetch(cfg.supabaseUrl.replace(/\/$/, "") + "/rest/v1/" + encodeURIComponent(cfg.table || "articles") + "?status=eq.published&order=published_at.desc", {
+    var response = await fetch(apiBase() + "/rest/v1/" + encodeURIComponent(cfg.table || "articles") + "?status=eq.published&order=published_at.desc", {
       headers: { apikey: cfg.supabaseAnonKey, Accept: "application/json" }
     });
     if (!response.ok) throw new Error("Supabase read failed: " + response.status);
