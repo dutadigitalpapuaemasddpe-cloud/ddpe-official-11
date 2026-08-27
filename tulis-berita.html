@@ -929,9 +929,18 @@
         }
       });
 
-      function renderManage() {
-        var list = DDPENews.listManaged();
+      async function renderManage() {
         var box = document.getElementById("manageList");
+        var list;
+        try {
+          list = DDPENews.listManagedAsync
+            ? await DDPENews.listManagedAsync()
+            : DDPENews.listManaged();
+        } catch (err) {
+          box.innerHTML = '<p style="color:#991b1b;font-size:0.9rem;">Gagal memuat berita dari server: ' +
+            (err.message || "periksa koneksi Supabase") + '</p>';
+          return;
+        }
         if (!list.length) {
           box.innerHTML = '<p style="color:var(--text-muted);font-size:0.9rem;">Belum ada berita.</p>';
           return;
@@ -961,17 +970,24 @@
           });
         });
         box.querySelectorAll(".btn-danger").forEach(function (btn) {
-          btn.addEventListener("click", function () {
+          btn.addEventListener("click", async function () {
             var id = btn.getAttribute("data-id");
             if (!confirm("Hapus berita ini dari website?")) return;
-            DDPENews.deleteArticle(id);
-            renderManage();
+            try {
+              await DDPENews.deleteArticle(id);
+              await renderManage();
+            } catch (err) {
+              editMsg.className = "editor-msg err";
+              editMsg.textContent = err.message || "Berita gagal dihapus.";
+            }
           });
         });
       }
 
-      function handleEdit(articleId) {
-        var article = DDPENews.byId(articleId);
+      async function handleEdit(articleId) {
+        var article = DDPENews.byIdAsync
+          ? await DDPENews.byIdAsync(articleId)
+          : DDPENews.byId(articleId);
         if (!article) return;
         editingArticle = article;
         document.getElementById("title").value = article.title || "";

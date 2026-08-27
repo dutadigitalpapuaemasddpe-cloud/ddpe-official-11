@@ -10,8 +10,8 @@ window.DDPE_NEWS_CONFIG = {
   formspreeEndpoint: "",
 
   // Supabase (opsional) — sinkron multi-perangkat
-  supabaseUrl: "https://khjbkktetfzckxarkggl.supabase.co",
-  supabaseAnonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtoamJra3RldGZ6Y2t4YXJrZ2dsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc1NzIzMjcsImV4cCI6MjEwMzE0ODMyN30.SzwuCyiFpdL_t5xXgyTIwgpoJlvphnFHZKh0vyAyBJI",
+  supabaseUrl: "https://khjbkktetfzckxarkggl.supabase.co/rest/v1/",
+  supabaseAnonKey: "sb_publishable_qQyPsHEUOjjckLMQ1Rp66w_tB7OnL0R",
   table: "articles",
   storageBucket: "ddpe-media"
 };

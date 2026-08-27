@@ -121,7 +121,7 @@
   async function remoteRequest(method, id, body) {
     if (!remoteEnabled()) return null;
     var token = await remoteToken();
-    if (!token) return null;
+    if (!token) throw new Error("Sesi Supabase tidak tersedia. Silakan masuk kembali.");
     var url = cfg.supabaseUrl.replace(/\/$/, "") + "/rest/v1/" + encodeURIComponent(cfg.table || "articles");
     if (id) url += "?id=eq." + encodeURIComponent(id);
     var response = await fetch(url, {
@@ -185,7 +185,8 @@
       remote.forEach(function (article) { map[article.id] = article; });
       base = Object.keys(map).map(function (id) { return map[id]; });
     } catch (e) {
-      // Existing seed and local content remain available offline.
+      console.warn("DDPE: berita remote tidak dapat dimuat.", e);
+      // Seed remains available when the remote service is unavailable.
     }
     return publishedOnly(base);
   }
@@ -295,11 +296,9 @@
       throw new Error("Judul dan isi berita wajib diisi.");
     }
 
-    try {
+    if (remoteEnabled()) {
       var remoteArticle = await remoteRequest("POST", "", toRemoteRow(article));
       if (remoteArticle) article = fromRemoteRow(remoteArticle);
-    } catch (e) {
-      // Keep local fallback when Supabase is unavailable.
     }
     var local = loadLocal().filter(function (item) { return item.id !== article.id; });
     local.unshift(article);
@@ -347,14 +346,18 @@
       found = true;
     }
 
+    if (remoteEnabled()) await remoteRequest("DELETE", id);
     saveLocal(next);
-    try { await remoteRequest("DELETE", id); } catch (e) { /* local tombstone remains */ }
     return found;
   }
 
   function listManaged() {
     // Semua yang published (untuk panel pengurus)
     return publishedOnly(mergeArticles());
+  }
+
+  async function listManagedAsync() {
+    return publishedAsync();
   }
 
   async function updateArticle(id, input) {
@@ -376,11 +379,9 @@
       throw new Error("Judul dan isi berita wajib diisi.");
     }
 
-    try {
+    if (remoteEnabled()) {
       var remoteArticle = await remoteRequest("PATCH", id, toRemoteRow(article));
       if (remoteArticle) article = fromRemoteRow(remoteArticle);
-    } catch (e) {
-      // Keep local fallback when Supabase is unavailable.
     }
     var local = loadLocal().filter(function (item) { return item.id !== id; });
     local.unshift(article);
@@ -402,6 +403,7 @@
     update: updateArticle,
     deleteArticle: deleteArticle,
     listManaged: listManaged,
+    listManagedAsync: listManagedAsync,
     coverOf: coverOf,
     checkPassword: checkPassword,
     formatDate: formatDate,
