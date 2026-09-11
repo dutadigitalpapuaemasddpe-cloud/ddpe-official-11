@@ -105,7 +105,7 @@
       };
       var safeUrl = function (value) {
         var url = String(value || "");
-        return /^(https?:|assets\/|\/)/i.test(url) ? url.replace(/'/g, "%27") : "";
+        return /^(https?:|data:image\/|assets\/|\/)/i.test(url) ? url.replace(/'/g, "%27") : "";
       };
       var readingTime = function (body) {
         var words = String(body || "").replace(/<[^>]+>/g, " ").trim().split(/\s+/).filter(Boolean).length;
@@ -175,12 +175,24 @@
           '<article class="article-formal"><nav class="article-breadcrumb"><a href="index.html">Beranda</a><span>/</span><a href="berita.html">Berita</a><span>/</span><strong>' + escapeHtml(a.categoryLabel || "Rilis") + '</strong></nav>' +
           '<div class="article-kicker">' + escapeHtml(a.categoryLabel || "Rilis") + '</div><h1>' + escapeHtml(a.title) + '</h1>' +
           '<div class="article-meta"><strong>Tim Media DDPE</strong><span>' + escapeHtml(DDPENews.formatDate(a.publishedAt)) + '</span><span>' + readingTime(a.body) + ' menit baca</span></div>' +
-          '<figure class="article-hero"><img src="' + escapeHtml(cover) + '" alt="' + escapeHtml(a.title) + '"><figcaption>Dokumentasi dan arsip resmi Duta Digital Papua Emas.</figcaption></figure>' +
+          '<figure class="article-hero"><img class="article-hero-image" src="' + escapeHtml(cover) + '" alt="' + escapeHtml(a.title) + '"><figcaption>Dokumentasi dan arsip resmi Duta Digital Papua Emas.</figcaption></figure>' +
           (a.excerpt ? '<p class="article-lead">' + escapeHtml(a.excerpt) + '</p>' : '') + '<div class="article-body">' + a.body + '</div>' +
           (a.sourceUrl ? '<p class="article-source">Sumber lengkap: <a href="' + escapeHtml(a.sourceUrl) + '" target="_blank" rel="noopener">' + escapeHtml(a.sourceName || "Baca sumber asli") + '</a></p>' : '') +
           '<section id="engagementRoot" class="article-engagement"><div class="share-bar"><span>Bagikan artikel</span><button type="button" data-share="whatsapp">WhatsApp</button><button type="button" data-share="facebook">Facebook</button><button type="button" data-share="x">X</button><button type="button" data-share="linkedin">LinkedIn</button><button type="button" data-copy>Salin Tautan</button></div><button type="button" id="likeButton" class="like-button">♡ Suka <b id="likeCount">0</b></button></section>' +
           '<section id="commentsRoot" class="comments-section"><h2>Komentar</h2><form id="commentForm" class="comment-form"><label>Nama Pengirim<input name="user_name" maxlength="80" required></label><label>Isi Komentar<textarea name="comment_text" rows="4" maxlength="2000" required></textarea></label><button type="submit" class="btn btn-primary">Kirim Komentar</button></form><div id="commentList" class="comment-list"></div></section></article>' +
           '<section class="related-section"><div class="section-label">Bacaan berikutnya</div><h2>Berita Terkait</h2><div class="related-grid">' + relatedCards(a) + '</div></section>';
+        var hero = document.querySelector(".article-hero");
+        var heroImage = document.querySelector(".article-hero-image");
+        var defaultCover = "assets/tim-ddpe-banner.jpg";
+        if (heroImage) {
+          heroImage.addEventListener("error", function () {
+            if (heroImage.src.indexOf(defaultCover) === -1) {
+              heroImage.src = defaultCover;
+              return;
+            }
+            if (hero) hero.hidden = true;
+          });
+        }
         document.querySelectorAll("[data-share]").forEach(function (button) {
           button.addEventListener("click", function () { var url = encodeURIComponent(location.href); var title = encodeURIComponent(a.title); var target = button.getAttribute("data-share"); var links = { whatsapp: "https://wa.me/?text=" + title + "%20" + url, facebook: "https://www.facebook.com/sharer/sharer.php?u=" + url, x: "https://twitter.com/intent/tweet?text=" + title + "&url=" + url, linkedin: "https://www.linkedin.com/sharing/share-offsite/?url=" + url }; if (target === "copy") return; window.open(links[target], "_blank", "noopener,noreferrer,width=640,height=520"); });
         });

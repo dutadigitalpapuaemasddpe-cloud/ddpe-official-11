@@ -242,7 +242,22 @@
   }
 
   function coverOf(a, index) {
-    if (a && a.coverImage) return a.coverImage;
+    if (a) {
+      var imageFields = [
+        a.coverImage,
+        a.cover_image,
+        a.image,
+        a.thumbnail,
+        a.image_url,
+        a.cover,
+        a.gambar,
+        a.imageUrl,
+        a.coverUrl
+      ];
+      for (var imageIndex = 0; imageIndex < imageFields.length; imageIndex += 1) {
+        if (typeof imageFields[imageIndex] === "string" && imageFields[imageIndex].trim()) return imageFields[imageIndex].trim();
+      }
+    }
     return FALLBACK_COVERS[(index || 0) % FALLBACK_COVERS.length];
   }
 
