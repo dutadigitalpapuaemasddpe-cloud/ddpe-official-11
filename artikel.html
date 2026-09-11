@@ -105,7 +105,24 @@
       };
       var safeUrl = function (value) {
         var url = String(value || "");
-        return /^(https?:|data:image\/|assets\/|\/)/i.test(url) ? url.replace(/'/g, "%27") : "";
+        if (!url) return "";
+        if (/^(https?:|data:image\/|\/)/i.test(url)) return url.replace(/'/g, "%27");
+        return url.replace(/^\.\//, "").replace(/'/g, "%27");
+      };
+      var imageUrlOf = function (article) {
+        var fields = [
+          article && article.coverImage,
+          article && article.cover_image,
+          article && article.image,
+          article && article.thumbnail,
+          article && article.image_url,
+          article && article.cover,
+          article && article.gambar
+        ];
+        for (var fieldIndex = 0; fieldIndex < fields.length; fieldIndex += 1) {
+          if (typeof fields[fieldIndex] === "string" && fields[fieldIndex].trim()) return fields[fieldIndex].trim();
+        }
+        return DDPENews.coverOf(article, 0);
       };
       var readingTime = function (body) {
         var words = String(body || "").replace(/<[^>]+>/g, " ").trim().split(/\s+/).filter(Boolean).length;
@@ -170,12 +187,12 @@
           return;
         }
         document.title = a.title + " · DDPE";
-        var cover = safeUrl(DDPENews.coverOf(a, 0));
+        var cover = safeUrl(imageUrlOf(a)) || "assets/tim-ddpe-banner.jpg";
         root.innerHTML =
           '<article class="article-formal"><nav class="article-breadcrumb"><a href="index.html">Beranda</a><span>/</span><a href="berita.html">Berita</a><span>/</span><strong>' + escapeHtml(a.categoryLabel || "Rilis") + '</strong></nav>' +
           '<div class="article-kicker">' + escapeHtml(a.categoryLabel || "Rilis") + '</div><h1>' + escapeHtml(a.title) + '</h1>' +
           '<div class="article-meta"><strong>Tim Media DDPE</strong><span>' + escapeHtml(DDPENews.formatDate(a.publishedAt)) + '</span><span>' + readingTime(a.body) + ' menit baca</span></div>' +
-          '<figure class="article-hero"><img class="article-hero-image" src="' + escapeHtml(cover) + '" alt="' + escapeHtml(a.title) + '"><figcaption>Dokumentasi dan arsip resmi Duta Digital Papua Emas.</figcaption></figure>' +
+          '<figure class="article-hero"><img class="article-hero-image" src="' + escapeHtml(cover) + '" alt="' + escapeHtml(a.title) + '" data-article-image><figcaption>Dokumentasi dan arsip resmi Duta Digital Papua Emas.</figcaption></figure>' +
           (a.excerpt ? '<p class="article-lead">' + escapeHtml(a.excerpt) + '</p>' : '') + '<div class="article-body">' + a.body + '</div>' +
           (a.sourceUrl ? '<p class="article-source">Sumber lengkap: <a href="' + escapeHtml(a.sourceUrl) + '" target="_blank" rel="noopener">' + escapeHtml(a.sourceName || "Baca sumber asli") + '</a></p>' : '') +
           '<section id="engagementRoot" class="article-engagement"><div class="share-bar"><span>Bagikan artikel</span><button type="button" data-share="whatsapp">WhatsApp</button><button type="button" data-share="facebook">Facebook</button><button type="button" data-share="x">X</button><button type="button" data-share="linkedin">LinkedIn</button><button type="button" data-copy>Salin Tautan</button></div><button type="button" id="likeButton" class="like-button">♡ Suka <b id="likeCount">0</b></button></section>' +
