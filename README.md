@@ -5,6 +5,8 @@
 
 Website profil organisasi (bukan portal pemetaan pengurus).
 
+Catatan arsitektur: repositori ini menggunakan HTML/CSS/JavaScript vanilla dan tidak memiliki folder Next.js `app` atau `pages`. Fitur detail berita dan Media Center karena itu dipasang pada `artikel.html` dan `media.html` agar tetap berjalan pada deployment static Vercel.
+
 ---
 
 ## Struktur folder
@@ -43,6 +45,10 @@ ddpe-official/
 4. Ganti warna di `css/main.css` → bagian `:root { ... }`.
 5. Ganti password tulis berita di `js/news-config.js`.
 6. Tambah artikel bawaan di `js/news-store.js` → array `SEED`.
+
+### Engagement artikel
+
+Jalankan tambahan SQL pada `supabase-media-schema.sql` untuk membuat tabel likes dan komentar secara additive. Halaman artikel tetap dapat dimuat jika tabel tersebut belum dibuat; jumlah suka akan fallback ke `0` dan komentar ke empty state.
 
 ---
 

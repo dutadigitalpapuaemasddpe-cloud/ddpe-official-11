@@ -55,6 +55,27 @@
     </div>
   </nav>
 
+  <main class="media-center-modern">
+    <section class="media-center-hero">
+      <div class="container">
+        <div class="media-center-eyebrow">Duta Digital Papua Emas</div>
+        <h1>Pusat Media &amp; Informasi Publik</h1>
+        <p>Arsip resmi berita, siaran pers, publikasi, dan dokumentasi kegiatan DDPE untuk masyarakat, mitra, dan media.</p>
+      </div>
+    </section>
+    <section class="media-center-content container">
+      <div class="media-tabs" id="mediaTabs" role="tablist" aria-label="Kategori media">
+        <button class="is-active" type="button" data-media-category="semua" role="tab" aria-selected="true">Semua</button>
+        <button type="button" data-media-category="berita" role="tab" aria-selected="false">Berita</button>
+        <button type="button" data-media-category="siaran-pers" role="tab" aria-selected="false">Siaran Pers</button>
+        <button type="button" data-media-category="publikasi" role="tab" aria-selected="false">Publikasi</button>
+        <button type="button" data-media-category="dokumentasi" role="tab" aria-selected="false">Dokumentasi</button>
+      </div>
+      <div id="mediaArchive" class="media-archive-grid" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <div id="legacyMedia">
   <!-- Hero + side menu (PTFI style) -->
   <div class="container" style="padding-top:0;">
     <div class="media-hero reveal">
@@ -296,7 +317,7 @@
     </div>
   </section>
 
-<section class="section" style="padding-top:0;">
+  <section class="section" style="padding-top:0;">
     <div class="container">
       <div class="cta-band glass glass-gold reveal">
         <h2>Undangan liputan atau wawancara?</h2>
@@ -309,6 +330,7 @@
       </div>
     </div>
   </section>
+  </div>
 
   <footer class="footer">
     <div class="container">
@@ -353,6 +375,32 @@
   <script src="js/media-store.js"></script>
   <script src="js/theme.js" defer></script>
   <script src="js/main.js"></script>
+  <script>
+    (function () {
+      var archive = document.getElementById("mediaArchive");
+      var tabs = document.getElementById("mediaTabs");
+      var articles = [];
+      var escapeHtml = function (value) { return String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); };
+      var render = function (category) {
+        var filtered = category === "semua" ? articles : articles.filter(function (item) { return item.category === category; });
+        if (!Array.isArray(filtered) || !filtered.length) {
+          archive.innerHTML = '<div class="media-archive-empty"><strong>Belum ada arsip untuk kategori ini</strong><span>Arsip publik DDPE akan ditampilkan setelah tersedia.</span></div>';
+          return;
+        }
+        archive.innerHTML = filtered.map(function (item, index) {
+          var cover = DDPENews.coverOf(item, index);
+          return '<article class="media-archive-card"><a href="artikel.html?id=' + encodeURIComponent(item.id) + '"><img src="' + escapeHtml(cover) + '" alt="" loading="lazy"><div class="media-archive-body"><span>' + escapeHtml(item.categoryLabel || "Berita") + '</span><time>' + escapeHtml(DDPENews.formatDate(item.publishedAt)) + '</time><h2>' + escapeHtml(item.title) + '</h2><p>' + escapeHtml(item.excerpt || "Baca informasi lengkap dari DDPE.") + '</p><b>Baca Selengkapnya <i aria-hidden="true">→</i></b></div></a></article>';
+        }).join("");
+      };
+      tabs.addEventListener("click", function (event) {
+        var button = event.target.closest("button[data-media-category]");
+        if (!button) return;
+        tabs.querySelectorAll("button").forEach(function (item) { item.classList.remove("is-active"); item.setAttribute("aria-selected", "false"); });
+        button.classList.add("is-active"); button.setAttribute("aria-selected", "true"); render(button.getAttribute("data-media-category"));
+      });
+      DDPENews.allPublishedAsync().then(function (data) { articles = Array.isArray(data) ? data : []; render("semua"); }).catch(function () { articles = []; render("semua"); });
+    })();
+  </script>
   <script>
     (async function () {
       var grid = document.getElementById("publishedPhotoGrid");

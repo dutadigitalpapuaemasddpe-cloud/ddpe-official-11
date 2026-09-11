@@ -17,16 +17,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/main.css" />
   <script>!function(){var e=localStorage.getItem("ddpe-theme")||"system",t=e==="dark"||e==="system"&&matchMedia("(prefers-color-scheme: dark)").matches;document.documentElement.classList.toggle("dark",t)}();</script>
-  <style>
-    .article-cover {
-      width: 100%;
-      max-height: 360px;
-      object-fit: cover;
-      border-radius: 14px;
-      margin-bottom: 1.5rem;
-      border: 1px solid var(--border);
-    }
-  </style>
 </head>
 <body>
   <div class="bg-layer"></div>
@@ -55,9 +45,9 @@
 
   <div class="article-wrap">
     <div class="container">
-      <article id="articleRoot" class="article-formal">
-        <p style="color:var(--text-muted);">Memuat artikel…</p>
-      </article>
+      <main id="articleRoot" class="article-layout">
+        <p style="color:var(--text-muted);">Memuat artikel...</p>
+      </main>
       <div style="text-align:center;margin-top:1.75rem;">
         <a href="berita.html" class="btn btn-ghost">← Kembali ke berita</a>
       </div>
@@ -102,6 +92,7 @@
   </footer>
   <script src="js/news-config.js"></script>
   <script src="js/news-store.js"></script>
+  <script src="js/article-engagement.js"></script>
   <script src="js/theme.js" defer></script>
   <script src="js/main.js"></script>
   <script>
@@ -109,33 +100,96 @@
       var params = new URLSearchParams(location.search);
       var id = params.get("id") || "";
       var root = document.getElementById("articleRoot");
+      var escapeHtml = function (value) {
+        return String(value || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+      };
+      var safeUrl = function (value) {
+        var url = String(value || "");
+        return /^(https?:|assets\/|\/)/i.test(url) ? url.replace(/'/g, "%27") : "";
+      };
+      var readingTime = function (body) {
+        var words = String(body || "").replace(/<[^>]+>/g, " ").trim().split(/\s+/).filter(Boolean).length;
+        return Math.max(1, Math.ceil(words / 200));
+      };
+      var formatCommentDate = function (date) {
+        return new Date(date).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+      };
+      var relatedCards = function (article) {
+        return DDPENews.allPublished().filter(function (item) { return item.id !== article.id; }).slice(0, 3).map(function (item, index) {
+          return '<a class="related-card" href="artikel.html?id=' + encodeURIComponent(item.id) + '">' +
+            '<img src="' + escapeHtml(safeUrl(DDPENews.coverOf(item, index + 1))) + '" alt="" loading="lazy">' +
+            '<span>' + escapeHtml(item.categoryLabel || "Berita") + '</span><h3>' + escapeHtml(item.title) + '</h3>' +
+            '<small>' + escapeHtml(DDPENews.formatDate(item.publishedAt)) + '</small></a>';
+        }).join("");
+      };
+      var renderEngagement = function (article) {
+        var articleId = escapeHtml(article.id);
+        var section = document.getElementById("engagementRoot");
+        var comments = document.getElementById("commentsRoot");
+        var likeCount = document.getElementById("likeCount");
+        var likeButton = document.getElementById("likeButton");
+        var commentList = document.getElementById("commentList");
+        var commentForm = document.getElementById("commentForm");
+        var liked = DDPEEngagement.hasLiked(article.id);
+        var count = 0;
+        if (!section || !comments) return;
+        DDPEngagement.getLikes(article.id).then(function (value) {
+          count = value; likeCount.textContent = String(count); likeButton.classList.toggle("is-liked", liked);
+        }).catch(function () { likeCount.textContent = "0"; });
+        likeButton.addEventListener("click", function () {
+          var nextLiked = !liked;
+          liked = nextLiked; count = Math.max(0, count + (nextLiked ? 1 : -1));
+          likeCount.textContent = String(count); likeButton.classList.toggle("is-liked", liked);
+          DDPEngagement.toggleLike(article.id, nextLiked).catch(function () {
+            liked = !nextLiked; count = Math.max(0, count + (nextLiked ? -1 : 1));
+            likeCount.textContent = String(count); likeButton.classList.toggle("is-liked", liked);
+          });
+        });
+        var renderComments = function (items) {
+          if (!items.length) { commentList.innerHTML = '<p class="comment-empty">Jadilah yang pertama berkomentar di artikel ini.</p>'; return; }
+          commentList.innerHTML = items.map(function (item) {
+            return '<article class="comment-item"><strong>' + escapeHtml(item.user_name) + '</strong><time datetime="' + escapeHtml(item.created_at) + '">' + formatCommentDate(item.created_at) + '</time><p>' + escapeHtml(item.comment_text) + '</p></article>';
+          }).join("");
+        };
+        DDPEngagement.getComments(article.id).then(renderComments).catch(function () { renderComments([]); });
+        commentForm.addEventListener("submit", function (event) {
+          event.preventDefault();
+          var submit = commentForm.querySelector("button[type=submit]");
+          var name = commentForm.elements.user_name.value.trim();
+          var text = commentForm.elements.comment_text.value.trim();
+          if (!name || !text) return;
+          submit.disabled = true; submit.textContent = "Mengirim...";
+          DDPEngagement.addComment(article.id, name, text).then(function (newComment) {
+            commentForm.reset(); return DDPEngagement.getComments(article.id).then(renderComments);
+          }).catch(function () { alert("Komentar belum dapat dikirim. Silakan coba lagi."); }).finally(function () { submit.disabled = false; submit.textContent = "Kirim Komentar"; });
+        });
+      };
       DDPENews.byIdAsync(id).then(function (a) {
         if (!a) {
-          root.innerHTML = '<p style="color:var(--text-muted);">Artikel tidak ditemukan atau sudah dihapus. <a href="berita.html" style="color:var(--purple-deep);">Kembali ke daftar berita</a></p>';
+          root.innerHTML = '<p class="article-not-found">Artikel tidak ditemukan atau sudah dihapus. <a href="berita.html">Kembali ke daftar berita</a></p>';
           return;
         }
         document.title = a.title + " · DDPE";
-        var cover = DDPENews.coverOf(a, 0);
-        var coverHtml = cover
-          ? '<img class="article-cover" src="' + cover + '" alt="' + a.title.replace(/"/g, "&quot;") + '" />'
-          : "";
-        var lead = a.excerpt ? '<p class="lead">' + a.excerpt + '</p>' : "";
-        var source = "";
-        if (a.sourceUrl) {
-          source =
-            '<p style="margin-top:1.75rem;padding-top:1.25rem;border-top:1px solid var(--border);font-size:0.9rem;color:var(--text-muted);">' +
-            'Sumber lengkap: <a href="' + a.sourceUrl + '" target="_blank" rel="noopener" style="color:var(--purple-deep);font-weight:600;">' +
-            (a.sourceName || "Baca di Kompasiana") + " →</a></p>";
-        }
+        var cover = safeUrl(DDPENews.coverOf(a, 0));
         root.innerHTML =
-          coverHtml +
-          '<div class="kicker">' + (a.categoryLabel || "Berita").toUpperCase() + "</div>" +
-          "<h1>" + a.title + "</h1>" +
-          '<div class="byline-block"><strong>' + (a.author || "Tim Media DDPE") + "</strong> · " +
-            DDPENews.formatDate(a.publishedAt) + " · Mimika, Papua Tengah</div>" +
-          lead +
-          '<div class="body">' + a.body + "</div>" +
-          source;
+          '<article class="article-formal"><nav class="article-breadcrumb"><a href="index.html">Beranda</a><span>/</span><a href="berita.html">Berita</a><span>/</span><strong>' + escapeHtml(a.categoryLabel || "Rilis") + '</strong></nav>' +
+          '<div class="article-kicker">' + escapeHtml(a.categoryLabel || "Rilis") + '</div><h1>' + escapeHtml(a.title) + '</h1>' +
+          '<div class="article-meta"><strong>Tim Media DDPE</strong><span>' + escapeHtml(DDPENews.formatDate(a.publishedAt)) + '</span><span>' + readingTime(a.body) + ' menit baca</span></div>' +
+          '<figure class="article-hero"><img src="' + escapeHtml(cover) + '" alt="' + escapeHtml(a.title) + '"><figcaption>Dokumentasi dan arsip resmi Duta Digital Papua Emas.</figcaption></figure>' +
+          (a.excerpt ? '<p class="article-lead">' + escapeHtml(a.excerpt) + '</p>' : '') + '<div class="article-body">' + a.body + '</div>' +
+          (a.sourceUrl ? '<p class="article-source">Sumber lengkap: <a href="' + escapeHtml(a.sourceUrl) + '" target="_blank" rel="noopener">' + escapeHtml(a.sourceName || "Baca sumber asli") + '</a></p>' : '') +
+          '<section id="engagementRoot" class="article-engagement"><div class="share-bar"><span>Bagikan artikel</span><button type="button" data-share="whatsapp">WhatsApp</button><button type="button" data-share="facebook">Facebook</button><button type="button" data-share="x">X</button><button type="button" data-share="linkedin">LinkedIn</button><button type="button" data-copy>Salin Tautan</button></div><button type="button" id="likeButton" class="like-button">♡ Suka <b id="likeCount">0</b></button></section>' +
+          '<section id="commentsRoot" class="comments-section"><h2>Komentar</h2><form id="commentForm" class="comment-form"><label>Nama Pengirim<input name="user_name" maxlength="80" required></label><label>Isi Komentar<textarea name="comment_text" rows="4" maxlength="2000" required></textarea></label><button type="submit" class="btn btn-primary">Kirim Komentar</button></form><div id="commentList" class="comment-list"></div></section></article>' +
+          '<section class="related-section"><div class="section-label">Bacaan berikutnya</div><h2>Berita Terkait</h2><div class="related-grid">' + relatedCards(a) + '</div></section>';
+        document.querySelectorAll("[data-share]").forEach(function (button) {
+          button.addEventListener("click", function () { var url = encodeURIComponent(location.href); var title = encodeURIComponent(a.title); var target = button.getAttribute("data-share"); var links = { whatsapp: "https://wa.me/?text=" + title + "%20" + url, facebook: "https://www.facebook.com/sharer/sharer.php?u=" + url, x: "https://twitter.com/intent/tweet?text=" + title + "&url=" + url, linkedin: "https://www.linkedin.com/sharing/share-offsite/?url=" + url }; if (target === "copy") return; window.open(links[target], "_blank", "noopener,noreferrer,width=640,height=520"); });
+        });
+        document.querySelector("[data-copy]").addEventListener("click", function (event) {
+          var button = event.currentTarget;
+          var copied = navigator.clipboard ? navigator.clipboard.writeText(location.href) : Promise.reject(new Error("Clipboard API unavailable"));
+          copied.then(function () { button.textContent = "Tersalin!"; setTimeout(function () { button.textContent = "Salin Tautan"; }, 1800); }).catch(function () { button.textContent = "Salin manual"; setTimeout(function () { button.textContent = "Salin Tautan"; }, 1800); });
+        });
+        renderEngagement(a);
       });
     })();
   </script>
